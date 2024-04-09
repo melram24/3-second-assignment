@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3 Sec Assignment</title>
+
+    <link rel="stylesheet" type="text/css" href="styles.css">
+
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #timer {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+        #startBtn{
+            font-size: 18px;
+            padding: 10px 20px;
+            background-color: #3c9b3a;
+            color:white;
+        }
+        #chartBtn{
+            font-size: 13px;
+            padding: 6px 15px;
+        }
+        .main{
+            background-color: white;
+        }
+
+
+
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-light bg-light">
+    <div class="container">
+        <button id="chartBtn" class="btn btn-secondary" onclick="ShowChart()">Show Results</button>
+    </div>
+</nav>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <h3>Can you click the Button at exactly 3 seconds?</h3>
+        <div class="col-md-6 text-center">
+            <div id="timer">0 seconds</div>
+            <button id="startBtn" class="btn btn-lg" onclick="toggleTimer()">Start</button>
+        </div>
+    </div>
+</div>
+<div class="container mt-5 main">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div id="attemptsSummary" class="mt-4"></div>
+            <div id="overallSummary" class="mt-4"></div>
+            <canvas id="chart" class="mt-4 mb-4"></canvas>
+        </div>
+    </div>
+</div>
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+
+    let startTime, endTime;
+    let attempts = [];
+    let ChartIsShown = false;
+
+    function toggleTimer() {
+        let button = document.getElementById("startBtn");
+        if (button.textContent === "Start") {
+            startTimer();
+        } else {
+            stopTimer();
+        }
+    }
+
+    function startTimer() {
+        startTime = new Date().getTime();
+        document.getElementById("startBtn").textContent = "Stop";
+    }
+
+    function stopTimer() {
+        endTime = new Date().getTime();
+        let elapsedTime = (endTime - startTime) / 1000;
+        let roundedTime = elapsedTime.toFixed(3);
+        document.getElementById("timer").textContent = elapsedTime.toFixed(3) + " seconds";
+        document.getElementById("startBtn").textContent = "Start";
+        let timerElement = document.getElementById("timer");
+        timerElement.textContent = elapsedTime.toFixed(3) + " seconds";
+
+
+        let color;
+        if (Math.abs(roundedTime - 3) <= 0.05) color = "green";
+        else if (Math.abs(roundedTime - 3) < 0.20) color = "blue";
+        else if (Math.abs(roundedTime - 3) <= 0.5) color = "yellow";
+        else color = "red";
+
+        document.body.style.backgroundColor = color;
+
+        attempts.push({
+            attemptNumber: attempts.length + 1,
+            startTime: new Date(startTime).toLocaleTimeString(),
+            stopTime: new Date(endTime).toLocaleTimeString(),
+            elapsedTime: elapsedTime.toFixed(3)
+        });
+        if(ChartIsShown == true){
+            updateAttemptsSummary();
+            updateOverallSummary();
+            updateChart();
+        }
+    }
+    function ShowChart(){
+        ChartIsShown = true;
+        updateAttemptsSummary();
+        updateOverallSummary();
+        updateChart();
+    }
+
+    function updateAttemptsSummary() {
+        let summary = "<h4>Attempts Summary:</h4>";
+        summary += "<table class='table'>";
+        summary += "<thead><tr><th>Attempt</th><th>Start Time</th><th>Stop Time</th><th>Elapsed Time</th></tr></thead>";
+        summary += "<tbody>";
+        attempts.forEach(function(attempt) {
+            summary += "<tr>";
+            summary += "<td>" + attempt.attemptNumber + "</td>";
+            summary += "<td>" + attempt.startTime + "</td>";
+            summary += "<td>" + attempt.stopTime + "</td>";
+            summary += "<td>" + attempt.elapsedTime + " seconds</td>";
+            summary += "</tr>";
+        });
+        summary += "</tbody>";
+        summary += "</table>";
+        document.getElementById("attemptsSummary").innerHTML = summary;
+    }
+
+
+    function updateOverallSummary() {
+        let totalAttempts = attempts.length;
+        let totalElapsedTime = attempts.reduce((sum, attempt) => sum + parseFloat(attempt.elapsedTime), 0);
+        let minTime = Math.min(...attempts.map(attempt => parseFloat(attempt.elapsedTime)));
+        let maxTime = Math.max(...attempts.map(attempt => parseFloat(attempt.elapsedTime)));
+        let avgTime = (totalElapsedTime / totalAttempts).toFixed(3);
+
+        let summary = "<h4>Overall Summary:</h4>";
+        summary += "<p>Total Attempts: " + totalAttempts + "</p>";
+        summary += "<p>Min Time: " + minTime.toFixed(3) + " seconds</p>";
+        summary += "<p>Max Time: " + maxTime.toFixed(3) + " seconds</p>";
+        summary += "<p>Average Time: " + avgTime + " seconds</p>";
+
+        document.getElementById("overallSummary").innerHTML = summary;
+    }
+
+    function updateChart() {
+        let labels = [];
+        let data = [];
+        attempts.forEach(function(attempt) {
+            labels.push(attempt.attemptNumber);
+            data.push(parseFloat(attempt.elapsedTime));
+        });
+
+        if (typeof myChart !== 'undefined' && myChart !== null) {
+            myChart.data.labels = labels;
+            myChart.data.datasets[0].data = data;
+            myChart.update();
+        } else {
+            var ctx = document.getElementById('chart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Time (seconds)',
+                        data: data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+</script>
+</body>
+</html>
